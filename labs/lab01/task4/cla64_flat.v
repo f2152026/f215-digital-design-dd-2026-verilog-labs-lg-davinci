@@ -24,7 +24,7 @@ module cla64_flat(
   // a real signal in the final circuit, it just controls how many times
   // the loop body is elaborated.
   // ---------------------------------------------------------------------
-  genvar i;
+  genvar i,j;
   generate
     for (i = 0; i < 64; i = i + 1) begin : gen_pg
       xor #(2) (p[i], a[i], b[i]);
@@ -59,13 +59,33 @@ module cla64_flat(
   // Do not move on to this task's reflection question until you've done
   // both checks.
   //
-  // TODO: paste your verified assign statements for c[1] through c[64] here.
+   generate
+    for (i = 1; i <= 64; i = i + 1) begin : gen_carry
+      wire [i:0] term;  // term[0..i-1] -> g-terms, term[i] -> cin-term
+
+      for (j = 0; j < i; j = j + 1) begin : gen_gterm
+        if (j == i-1) begin : top_term
+          // empty p-product case: just g[i-1]
+          assign #(2) term[j] = g[j];
+        end else begin : prod_term
+          // (&p[i-1:j+1]) is the AND of p[j+1] .. p[i-1]
+          assign #(2) term[j] = (&p[i-1:j+1]) & g[j];
+        end
+      end
+
+      // final cin term: p[i-1] & p[i-2] & ... & p[0] & cin
+      assign #(2) term[i] = (&p[i-1:0]) & cin;
+
+      assign #(2) c[i] = |term;
+    end
+  endgenerate
+
 
   assign cout = c[64];
 
   // ---------------------------------------------------------------------
   // Step 3: sum bits
   // ---------------------------------------------------------------------
-  // TODO: assign #(2) sum = p ^ {c[63:1], cin};
+   assign #(2) sum = p ^ {c[63:1], cin};
 
 endmodule
