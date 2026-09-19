@@ -1,27 +1,53 @@
 // tb.v
 // Starter testbench template -- YOU complete this file.
 
-module tb;
+// tb_lut.v
+// Testbench for the parameterized lut (ROM) module.
+// Overrides WIDTH/DEPTH away from the module's own defaults, then loops
+// sel through every valid address and checks dout against the expected
+// i*i value.
 
-  // TODO: declare the inputs and outputs
+module tb_lut;
 
-  // TODO: instantiate DUT here
+  // t_sel must be wide enough for the largest DEPTH we test (DEPTH=8 -> 3 bits).
+  reg  [2:0] t_sel;
+  wire [7:0] t_dout;
 
-  // Waveform dump configuration (DO NOT CHANGE)
-  string vcd_file;
+  integer i;
+  integer errors;
+
+  // Parameter override: DEPTH=8, WIDTH=8 -- different from the module's
+  // own defaults (WIDTH=8, DEPTH=4), demonstrating the #() override syntax.
+  lut #(.WIDTH(8), .DEPTH(8)) U1 (
+    .sel  (t_sel),
+    .dout (t_dout)
+  );
+
   initial begin
-    if ($value$plusargs("vcd=%s", vcd_file)) begin
-      $dumpfile(vcd_file);
-      $dumpvars(0, DUT);
+    errors = 0;
+
+    for (i = 0; i < 8; i = i + 1) begin
+      t_sel = i;
+      #5; // let the combinational read settle
+
+      if (t_dout !== i*i) begin
+        $display("%0t FAIL: sel=%0d expected dout=%0d got dout=%0d",
+                  $time, i, i*i, t_dout);
+        errors = errors + 1;
+      end else begin
+        $display("%0t PASS: sel=%0d dout=%0d", $time, i, t_dout);
+      end
     end
-  end
 
-  initial begin
-    // TODO: apply different input combinations
+    if (errors == 0)
+      $display("All 8 addresses matched expected i*i values.");
+    else
+      $display("%0d mismatch(es) found.", errors);
 
+    $finish;
   end
 
   initial
-    $monitor($time, " I0=%b I1=%b S=%b | Y=%b", t_i0, t_i1, t_s, t_y); // change as required
+    $monitor($time, " sel=%0d dout=%0d", t_sel, t_dout);
 
 endmodule
